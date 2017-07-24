@@ -1,0 +1,11 @@
+How to compile C source
+=======================
+
+## compiling source..
+
+   ex)
+      == C source in case ==
+		./compile c sdltoupper
+
+      == Multi-Thread source in case ==
+		./compile th program_name

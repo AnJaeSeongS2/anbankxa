@@ -1,0 +1,56 @@
+# Server Pro*C makefile
+
+include $(ORACLE_HOME)/precomp/lib/env_precomp.mk
+ORALIBDIR = $(LIBHOME)
+ORALIB = $(PROLDLIBS) 
+
+TARGET	= $(COMP_TARGET)
+APOBJS	= $(TARGET).o
+NSDLOBJ = $(TMAXDIR)/lib/sdl.o
+
+#Oracle
+LIBS    = -lsvr -loras
+#Informix
+#LIBS    = -lsvr -linfs
+#Db2
+#LIBS    = -lsvr -ldb2s
+#Sybase
+#LIBS    = -lsvr -lsybs
+
+OBJS    = $(APOBJS) $(SVCTOBJ)
+SVCTOBJ = $(TARGET)_svctab.o
+
+CFLAGS  = -O -I$(TMAXDIR)
+
+APPDIR  = $(TMAXDIR)/appbin
+SVCTDIR = $(TMAXDIR)/svct
+TMAXLIBDIR  = $(TMAXDIR)/lib
+ 
+#
+.SUFFIXES : .c
+
+.c.o: 
+	$(CC) $(CFLAGS) -c $<
+
+#
+# server compile
+#
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -L$(TMAXLIBDIR) -o $(TARGET) -L$(ORALIBDIR) $(ORALIB) $(OBJS) $(LIBS) $(NSDLOBJ)
+	mv $(TARGET) $(APPDIR)/.
+	rm -f $(OBJS)
+
+$(APOBJS): $(TARGET).pc
+	proc iname=$(TARGET) include=$(TMAXDIR) define=__LINUX_ORACLE_PROC__
+	$(CC) $(CFLAGS) -c $(TARGET).c
+
+$(SVCTOBJ): 
+	cp -f $(SVCTDIR)/$(TARGET)_svctab.c . 
+	touch ./$(TARGET)_svctab.c 
+	$(CC) $(CFLAGS) -c ./$(TARGET)_svctab.c 
+
+#
+clean:
+	-rm -f *.o core $(APPDIR)/$(TARGET) $(TARGET).lis

@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <usrinc/atmi.h>
+#include "../sdl/demo.s"
+
+EXEC SQL include sqlca.h;
+
+EXEC SQL begin declare section;
+	int  h_empno;
+	char h_ename[11];
+	char h_job[10];
+	int  h_mgr;
+	char h_date[11];
+	float h_sal;
+	float h_comm;
+	int  h_deptno;
+EXEC SQL end declare section;
+
+SDLINS( TPSVCINFO *msg )
+{
+	struct edu_emp *sndbuf;
+
+	sndbuf = ( struct edu_emp *)msg->data;
+
+	h_empno = h_mgr = h_sal = h_comm = h_deptno = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+
+	h_empno = sndbuf->empno;
+	h_mgr   = sndbuf->mgr;
+	h_sal   = sndbuf->sal;
+	h_comm  = sndbuf->comm;
+	h_deptno= sndbuf->deptno;
+	memcpy( h_ename, sndbuf->ename, sizeof(sndbuf->ename) );
+	memcpy( h_job  , sndbuf->job  , sizeof(sndbuf->job) );
+	memcpy( h_date , sndbuf->date , sizeof(sndbuf->date) );
+
+	EXEC SQL INSERT 
+	INTO emp( empno, ename, job, mgr, hiredate,sal,comm,deptno)
+	VALUES ( :h_empno, :h_ename, :h_job, :h_mgr, to_date(:h_date,'yymmdd'), :h_sal, :h_comm, :h_deptno );
+
+	if ( sqlca.sqlcode != 0 ){
+		printf( "insert failed sqlcode = %d\n",sqlca.sqlcode );
+		tpreturn( TPFAIL, -1, NULL, 0, 0 );
+	}
+
+	tpreturn( TPSUCCESS, 0, NULL, 0, 0 );
+}
+
+SDLDEL( TPSVCINFO *msg )
+{
+	struct edu_emp *sndbuf;
+
+	sndbuf = ( struct edu_emp *)msg->data;
+
+	h_empno = sndbuf->empno;
+
+	EXEC SQL DELETE
+	FROM emp
+	WHERE empno = :h_empno;
+
+	if ( sqlca.sqlcode != 0 ){
+		printf( "delete failed sqlcode = %d\n",sqlca.sqlcode );
+		tpreturn( TPFAIL, sqlca.sqlcode, NULL, 0, 0 );
+	}
+
+	tpreturn( TPSUCCESS, sqlca.sqlcode, (char *)sndbuf, sizeof(sndbuf), 0 );
+}
+
+SDLSEL( TPSVCINFO *msg )
+{
+	struct edu_emp *sndbuf;
+
+	sndbuf = ( struct edu_emp *)msg->data;
+
+	h_empno = h_mgr = h_sal = h_comm = h_deptno = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+
+	h_empno = sndbuf->empno;
+
+	EXEC SQL SELECT NVL(ename,' '), NVL(job,' '), NVL(mgr,0), NVL(to_char(hiredate,'yymmdd'), ' '),NVL(sal,0),NVL(comm,0),NVL(deptno,0)
+	INTO :h_ename, :h_job, :h_mgr, :h_date, :h_sal, :h_comm, :h_deptno 
+	FROM emp
+	WHERE empno = :h_empno;
+
+	if ( sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 ){
+		printf( "select failed sqlcode = %d\n",sqlca.sqlcode );
+		tpreturn( TPFAIL, sqlca.sqlcode, NULL, 0, 0 );
+	}
+
+	sndbuf->mgr = h_mgr;
+	sndbuf->sal = h_sal;
+	sndbuf->comm = h_comm;
+	sndbuf->deptno = h_deptno;
+	strcpy( sndbuf->ename, h_ename );
+	strcpy( sndbuf->job, h_job );
+	strcpy( sndbuf->date, h_date );
+
+	tpreturn( TPSUCCESS, sqlca.sqlcode, (char *)sndbuf, sizeof(sndbuf), 0 );
+}
+
+SDLUPT( TPSVCINFO *msg )
+{
+	struct edu_emp *sndbuf;
+
+	sndbuf = ( struct edu_emp *)msg->data;
+
+	h_empno = h_mgr = h_sal = h_comm = h_deptno = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+
+	h_empno = sndbuf->empno;
+	strcpy(h_ename , sndbuf->ename );
+	strcpy(h_job , sndbuf->job );
+
+	EXEC SQL UPDATE emp 
+	SET ename = :h_ename, job = :h_job
+	WHERE empno = :h_empno;
+
+	if ( sqlca.sqlcode != 0 ){
+		printf( "update failed sqlcode = %d\n",sqlca.sqlcode );
+		tpreturn( TPFAIL, sqlca.sqlcode, NULL, 0, 0 );
+	}
+
+	tpreturn( TPSUCCESS, sqlca.sqlcode, NULL, 0, 0 );
+}
+

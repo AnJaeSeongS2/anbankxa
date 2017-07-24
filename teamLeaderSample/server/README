@@ -1,0 +1,22 @@
+How to compile C or Pro*C source
+=================================
+
+## compiling source..
+
+   ex)
+      == C source in case ==
+		./compile sdl svr1
+		./compile c svr2
+		./compile c svr3
+		./compile ucs svr_ucs
+		./compile c svr_conv
+		./compile c svr_rq
+		./compile c svr_sq
+		./compile c svr_hms
+
+      == Pro*C source in case ==
+		./compile psdl sdltest
+		./compile pc fdltest
+
+      == Tb*C source in case ==
+		./compile tbc tbrtest

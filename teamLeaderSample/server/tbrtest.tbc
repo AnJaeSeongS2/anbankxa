@@ -1,0 +1,226 @@
+#include "tbrtest.h"
+
+EXEC SQL INCLUDE SQLCA.H;
+
+EXEC SQL BEGIN DECLARE SECTION;
+	int	h_empno;
+	char	h_ename[MAXLEN];
+	char	h_job[MAXLEN];
+	char	h_date[MAXLEN];
+	int	h_count;
+	float	h_sal;
+EXEC SQL END DECLARE SECTION;
+
+TBRINS( TPSVCINFO *msg )
+{
+	str  sndbuf;
+	char *rcvbuf;
+	char tmp[1024];
+
+	sndbuf = (str)msg->data;
+
+#if _DBG
+	print_input(sndbuf);
+#endif
+	
+	rcvbuf=(char *)tpalloc("STRING", NULL, 4096);
+	if(rcvbuf==NULL) {
+		printf("tpalloc failed (rcvbuf) : %s\n", tpstrerror(tperrno));
+		tpreturn(TPFAIL, -1, NULL, 0, 0);
+	}
+
+	h_empno = h_sal = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+
+	h_empno = sndbuf->empno;
+	h_sal   = sndbuf->sal;
+	strcpy( h_ename, sndbuf->ename );
+	strcpy( h_job  , sndbuf->job   );
+	strcpy( h_date , sndbuf->date  );
+
+	EXEC SQL 
+	INSERT INTO emp( empno, ename, job, hiredate,sal)
+	VALUES (:h_empno, :h_ename, :h_job, to_date(:h_date,'yymmdd'), :h_sal );
+
+	if ( sqlca.sqlcode != SQLOK )
+	{
+		sprintf(tmp, "[%s] emp Insert Fail", msg->name);
+		strcpy(rcvbuf, tmp);
+		printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
+		tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
+	}
+
+	sprintf(tmp, "[%s] emp Insert Success", msg->name);
+	strcpy(rcvbuf, tmp);
+
+#if _DBG
+	print_output(rcvbuf);
+#endif
+
+	tpreturn( TPSUCCESS, 0, rcvbuf, strlen(rcvbuf), 0 );
+}
+
+TBRUPT( TPSVCINFO *msg )
+{
+	str  sndbuf;
+	char *rcvbuf;
+	char tmp[1024];
+
+	sndbuf = (str)msg->data;
+
+#if _DBG
+	print_input(sndbuf);
+#endif
+	
+	rcvbuf=(char *)tpalloc("STRING", NULL, 4096);
+	if(rcvbuf==NULL) {
+		printf("tpalloc failed (rcvbuf) : %s\n", tpstrerror(tperrno));
+		tpreturn(TPFAIL, -1, NULL, 0, 0);
+	}
+
+	h_empno = h_sal = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+	memset( tmp , 0x00, sizeof( tmp  ) );
+
+	h_empno = sndbuf->empno;
+	h_sal   = sndbuf->sal;
+	strcpy( h_ename, sndbuf->ename );
+	strcpy( h_job  , sndbuf->job   );
+	strcpy( h_date , sndbuf->date  );
+
+	EXEC SQL UPDATE emp
+	SET	empno = :h_empno+1,
+		ename = :h_ename,
+		job   = 'UPDATE'
+	WHERE   empno = :h_empno;
+
+	if ( sqlca.sqlcode != SQLOK )
+	{
+		sprintf(tmp, "[%s] emp Update Fail", msg->name);
+		strcpy(rcvbuf, tmp);
+		printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
+		tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
+	}
+
+	sprintf(tmp, "[%s] emp Update Success", msg->name);
+	strcpy(rcvbuf, tmp);
+
+#if _DBG
+	print_output(rcvbuf);
+#endif
+
+	tpreturn( TPSUCCESS, 0, rcvbuf, strlen(rcvbuf), 0 );
+}
+
+TBRDEL( TPSVCINFO *msg )
+{
+	str  sndbuf;
+	char *rcvbuf;
+	char tmp[1024];
+
+	sndbuf = (str)msg->data;
+
+#if _DBG
+	print_input(sndbuf);
+#endif
+	
+	rcvbuf=(char *)tpalloc("STRING", NULL, 4096);
+	if(rcvbuf==NULL) {
+		printf("tpalloc failed (rcvbuf) : %s\n", tpstrerror(tperrno));
+		tpreturn(TPFAIL, -1, NULL, 0, 0);
+	}
+
+	h_empno = h_sal = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+	memset( tmp , 0x00, sizeof( tmp  ) );
+
+	h_empno = sndbuf->empno;
+	h_sal   = sndbuf->sal;
+	strcpy( h_ename, sndbuf->ename );
+	strcpy( h_job  , sndbuf->job   );
+	strcpy( h_date , sndbuf->date  );
+
+	EXEC SQL DELETE emp
+	WHERE   empno = :h_empno;
+
+	if ( sqlca.sqlcode != SQLOK )
+	{
+		sprintf(tmp, "[%s] emp Delete Fail", msg->name);
+		strcpy(rcvbuf, tmp);
+		printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
+		tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
+	}
+
+	sprintf(tmp, "[%s] emp Delete Success", msg->name);
+	strcpy(rcvbuf, tmp);
+
+#if _DBG
+	print_output(rcvbuf);
+#endif
+
+	tpreturn( TPSUCCESS, 0, rcvbuf, strlen(rcvbuf), 0 );
+}
+
+TBRSEL( TPSVCINFO *msg )
+{
+	str  sndbuf;
+	char *rcvbuf;
+	char tmp[1024];
+
+	sndbuf = (str)msg->data;
+
+#if _DBG
+	print_input(sndbuf);
+#endif
+	
+	rcvbuf=(char *)tpalloc("STRING", NULL, 4096);
+	if(rcvbuf==NULL) {
+		printf("tpalloc failed (rcvbuf) : %s\n", tpstrerror(tperrno));
+		tpreturn(TPFAIL, -1, NULL, 0, 0);
+	}
+
+	h_empno = h_sal = h_count = 0;
+
+	memset( h_ename, 0x00, sizeof( h_ename ) );
+	memset( h_job, 0x00, sizeof( h_job ) );
+	memset( h_date, 0x00, sizeof( h_date ) );
+	memset( tmp , 0x00, sizeof( tmp  ) );
+
+	h_empno = sndbuf->empno;
+	h_sal   = sndbuf->sal;
+	strcpy( h_ename, sndbuf->ename );
+	strcpy( h_job  , sndbuf->job   );
+	strcpy( h_date , sndbuf->date  );
+
+
+	EXEC SQL SELECT COUNT(*)
+	INTO	:h_count
+	FROM	emp
+	WHERE	empno = :h_empno;
+
+	if ( ( sqlca.sqlcode != SQLOK ) && ( sqlca.sqlcode != SQLNOTFOUND ) ) 
+	{
+		sprintf(tmp, "[%s] emp Select Fail", msg->name);
+		strcpy(rcvbuf, tmp);
+		printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
+		tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
+	}
+
+	sprintf(tmp, "[%s] emp Select Success [%d]", msg->name, h_count);
+	strcpy(rcvbuf, tmp);
+
+#if _DBG
+	print_output(rcvbuf);
+#endif
+
+	tpreturn( TPSUCCESS, 0, rcvbuf, strlen(rcvbuf), 0 );
+}

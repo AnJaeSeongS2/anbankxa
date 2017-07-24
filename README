@@ -1,5 +1,12 @@
 https://github.com/AnJaeSeongS2/anbankxa
 ****** RM XA files original pass info *******
+usage : 
+0. cd bank20170720
+1. make clean all
+2. cd client
+3. ./anbankxacli
+
+
 
 
 *folder name  

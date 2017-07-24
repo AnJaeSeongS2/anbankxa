@@ -488,7 +488,7 @@ int CREATE(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -560,7 +560,7 @@ int CREATE(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -693,7 +693,7 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -747,7 +747,7 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -816,7 +816,7 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -926,7 +926,7 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -980,7 +980,7 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -1049,7 +1049,7 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 101;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
