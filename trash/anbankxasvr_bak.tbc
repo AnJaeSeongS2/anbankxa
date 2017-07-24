@@ -1,0 +1,291 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <usrinc/atmi.h>
+#include <usrinc/sdl.h>
+#include "../sdl/anbankxa.s"
+#define OKMSG "YOU COMPLETE THE TRANSACTION"
+#define USERPASS "tibero/tmax"
+#define NAMEMAXLEN    11
+const char *const BANK_ID[2] = {"anbank1","anbank2"};
+EXEC SQL include sqlca.h;
+EXEC SQL BEGIN DECLARE SECTION;
+    char    bank_id1[NAMEMAXLEN];
+    int     account_id1;
+    char    bank_id2[NAMEMAXLEN];
+    int     account_id2;
+    long     money;
+EXEC SQL END DECLARE SECTION;
+
+SENDMONEY(TPSVCINFO *msg)
+{
+    struct input_bank2 *rcvbuf;
+    int     ret;
+    char    *send;
+
+    rcvbuf = (struct input_bank2 *)(msg->data);
+    send = (char *)tpalloc("STRING", NULL, 0);
+    if (send == NULL) {
+        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
+        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+    account_id1= rcvbuf->account_id1;
+	strcpy(bank_id1, rcvbuf->bank_id1);
+    account_id2 = rcvbuf->account_id2;
+	strcpy(bank_id2, rcvbuf->bank_id2);
+    
+	int maxsize = sizeof(BANK_ID)/sizeof(const char* const);
+    for( int i = 0; i < maxsize ;i++)
+	{
+        if(!strcmp(bank_id1,BANK_ID[i]))
+		{
+			break;
+	    }
+		if( i == maxsize-1)
+		{
+			 fprintf(stderr,"bank_id1 is not exist.");
+			 tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		}
+    }
+    for( int i = 0; i < maxsize ;i++)
+	{
+        if(!strcmp(bank_id2,BANK_ID[i]))
+		{
+			break;
+	    }
+		if( i == maxsize-1)
+		{
+			 fprintf(stderr,"bank_id2 is not exist.");
+			 tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		}
+    }
+
+    if(bank_id1 == bank_id2 && account_id1 == account_id2)
+	{
+        printf("send money with same account failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+
+	}
+
+    EXEC SQL XA SET CONNECTION AT :bank_id1;
+    EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id1;
+    /*  Declare && Open Cursor for Fetch */
+    long prevmoney = money;
+    money= money - rcvbuf->money;
+    EXEC SQL UPDATE ACCOUNT 
+             SET MONEY = :money
+             WHERE ACCOUNT_ID = :account_id1;
+
+    printf("account_id1 = %d\nbank_id1 = %d\nmoney = %d\n",account_id1,bank_id1,money);
+    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
+    {
+        printf("WITHDROW(UPDATE) in SENDMONEY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+    if (prevmoney<money)
+    {
+        printf("money min limit over prevmoney<money");
+        printf("WITHDROW(UPDATE) in SENDMONEY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+    if (money<0)
+    {
+        printf("money min limit over money<0");
+        printf("WITHDROW(UPDATE) in SENDMONEY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+	EXEC SQL XA SET CONNECTION AT :bank_id2;
+    EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id2;
+    /*  Declare && Open Cursor for Fetch */
+    prevmoney = money;
+    money = money + rcvbuf->money;
+    EXEC SQL UPDATE ACCOUNT
+             SET MONEY = :money
+             WHERE ACCOUNT_ID = :account_id2;
+
+
+    printf("account_id2 = %d\nbank_id2 = %d\nmoney = %d\n",account_id2,bank_id2,money);
+    if ((sqlca.sqlcode != 0 && sqlca.sqlcode != 1403) )
+    {
+        printf("DEPOSIT(UPDATE) in SENDMONEY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+    if (prevmoney>money)
+    {
+        printf("money high limit over prevmoney<money");
+        printf("DEPOSIT(UPDATE) in SENDMONEY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+    if (money<0)
+    {
+        printf("money high limit over money<0");
+        printf("DEPOSIT(UPDATE) in SENDMONY failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+    strcpy(send, OKMSG);
+    EXEC SQL COMMIT WORK RELEASE;
+    tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
+
+}
+
+
+
+CREATE(TPSVCINFO *msg)
+{
+    struct input_bank2 *rcvbuf;
+    int     ret;
+    char    *send;
+
+    rcvbuf = (struct input_bank1 *)(msg->data);
+    send = (char *)tpalloc("STRING", NULL, 0);
+    if (send == NULL) {
+        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
+        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+    account_id1 = rcvbuf->account_id1;
+    money= rcvbuf->money;
+	strcpy(bank_id1, rcvbuf->bank_id1);
+    EXEC SQL XA SET CONNECTION AT :bank_id1;
+
+    /*  Declare && Open Cursor for Fetch */
+    EXEC SQL INSERT INTO ACCOUNT (
+    ACCOUNT_ID, 
+    MONEY )
+    VALUES (
+    :account_id1, :money);
+
+
+    printf("account_id = %d\nmoney = %d\n",account_id1,money);
+    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
+    {
+        printf("CREATE(INSERT) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+    printf("account_id = %d\nmoney = %d\n",account_id1,money);
+    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
+    {
+        printf("CREATE(INSERT) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+    }
+    strcpy(send, OKMSG);
+
+    EXEC SQL COMMIT WORK RELEASE;
+    tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
+}
+
+DEPOSIT(TPSVCINFO *msg)
+{
+    struct input_bank2 *rcvbuf;
+    int     ret;
+    long    acnt_id;
+    char    *send;
+
+    rcvbuf = (struct input_bank1 *)(msg->data);
+    send = (char *)tpalloc("STRING", NULL, 0);
+    if (send == NULL) {
+        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
+        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
+    }
+
+
+    account_id2 = rcvbuf->account_id2;
+	strcpy(bank_id2 , rcvbuf->bank_id2);
+	EXEC SQL XA SET CONNECTION AT :bank_id2;
+    EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id2;
+    /*  Declare && Open Cursor for Fetch */
+    long prevmoney = money;
+    money = money + rcvbuf->money;
+    EXEC SQL UPDATE ACCOUNT
+             SET MONEY = :money
+             WHERE ACCOUNT_ID = :account_id2;
+
+
+    printf("account_id = %d\nbank_id = %d\nmoney = %d\n",account_id2,bank_id2,money);
+    if ((sqlca.sqlcode != 0 && sqlca.sqlcode != 1403) )
+    {
+        printf("DEPOSIT(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+    if (prevmoney>money)
+    {
+        printf("money high limit over prevmoney<money");
+        printf("DEPOSIT(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+    if (money<0)
+    {
+        printf("money high limit over money<0");
+        printf("deposit(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+    strcpy(send, OKMSG);
+    EXEC SQL COMMIT WORK RELEASE;
+    tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
+	return 0;
+}
+
+int WITHDROW(TPSVCINFO *msg)
+{
+    struct input_bank2 *rcvbuf;
+    int     ret;
+    long    acnt_id;
+    char    *send;
+    
+    rcvbuf = (struct input *)(msg->data);
+    send = (char *)tpalloc("STRING", NULL, 0);
+    if (send == NULL) {
+        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
+        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+
+
+    account_id1= rcvbuf->account_id1;
+	strcpy( bank_id1 , rcvbuf->bank_id1);
+
+    EXEC SQL XA SET CONNECTION AT :bank_id1;
+    EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id1;
+    /*  Declare && Open Cursor for Fetch */
+    long prevmoney = money;
+    money= money - rcvbuf->money;
+    EXEC SQL UPDATE ACCOUNT 
+             SET MONEY = :money
+             WHERE ACCOUNT_ID = :account_id1;
+
+    printf("account_id = %d\nbank_id = %d\nmoney = %d\n",account_id1,money);
+    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
+    {
+        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+
+    if (prevmoney<money)
+    {
+        printf("money min limit over prevmoney<money");
+        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+    if (money<0)
+    {
+        printf("money min limit over money<0");
+        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, TPNOFLAGS);
+		return -1;
+    }
+
+    strcpy(send, OKMSG);
+    EXEC SQL COMMIT WORK RELEASE;
+    tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
+	return 0;
+}
+
+

@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <usrinc/atmi.h>
+#include <usrinc/sdl.h> 
+#include "../sdl/demo.s"
+
+#define OKMSG "YOU COMPLETE THE TRANSACTION"
+
+EXEC SQL include sqlca.h;
+EXEC SQL BEGIN DECLARE SECTION;
+int account_id;
+int     money;
+EXEC SQL END DECLARE SECTION;
+
+UPDATE(TPSVCINFO *msg)
+{
+    struct input *rcvbuf;
+    int     ret;
+    long    acnt_id, rcvlen;
+    char    *send;
+
+    rcvbuf = (struct input *)(msg->data);
+    send = (char *)tpalloc("STRING", NULL, 0);
+    if (send == NULL) {
+       fprintf(stderr, "tpalloc fail errno = %s\n", strerror(tperrno));
+       tpreturn(TPFAIL, 0, (char *)NULL, 0, 0);
+    }
+    account_id = rcvbuf->account_id;
+    moeny = rcvbuf->money;
+
+    EXEC SQL UPDATE ACCOUNT
+                SET MONEY = :money
+              WHERE ACCOUNT_ID = :account_id;
+    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 ) {
+        fprintf(stderr, "update failed sqlcode = %d\n", sqlca.sqlcode);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, 0);
+    }
+    rcvbuf->account_id++;
+    ret = tpcall("INSERT", (char *)rcvbuf, 0, (char **)&send, (long *)&rcvlen, 
+                 TPNOFLAGS);
+    if (ret < 0) {
+        fprintf(stderr, "tpcall fail tperrno = %d\n", tperrno);
+        tpreturn(TPFAIL, -1, (char *)NULL, 0, 0);
+    }
+    strcpy(send, OKMSG);
+    tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
+}

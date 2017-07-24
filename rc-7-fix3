@@ -1,0 +1,89 @@
+#OpenFrame
+
+# LANGUAGE
+# export LANG=ko_KR.eucKR
+#
+source ~/.bashrc
+export LC_ALL=C
+export LANG=C
+export WHICH_RC='rc-7-fix3 -- OpenFrame 7.0'
+
+export PATH=$TMAXDIR/usrappbin:$HOME/bin:/usr/lib/x86_64-linux-gnu/gawk:/usr/bin:${PATH}
+export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/gawk:/usr/lib:${LD_LIBRARY_PATH}
+
+# OpenFrame
+export OPENFRAME_HOME=$HOME/o7
+export OPENFRAME_BIT=64
+export OPENFRAME_VOL=${OPENFRAME_HOME}/volume_DEFVOL
+export PATH=${OPENFRAME_HOME}/bin:${OPENFRAME_HOME}/util:${PATH}
+export LD_LIBRARY_PATH=${OPENFRAME_HOME}/lib:${LD_LIBRARY_PATH}
+export LCOV_OUTDIR=${OPENFRAME_HOME}/coverage
+export OH=${OPENFRAME_HOME}
+export SOURCE_BASE=${OPENFRAME_HOME}/source_base
+export SRC=${SOURCE_BASE}
+
+
+
+# MF Cobol
+export COBDIR=/opt/microfocus/cobol
+export PATH=$COBDIR/bin:${PATH}
+export LD_LIBRARY_PATH=$COBDIR/lib:${LD_LIBRARY_PATH}
+export COBPATH=$COBDIR/lib
+export COBCPY=$COBDIR/cpylib
+
+# OF Cobol
+export OFCOB_INSTALL=/home/anu/ofcobol
+export OFCOB_HOME=${OFCOB_INSTALL}
+export LD_LIBRARY_PATH=${OFCOB_INSTALL}/lib:${LD_LIBRARY_PATH} 
+export PATH=${OFCOB_INSTALL}/bin:${PATH}:${OFCOB_HOME}/cobolparser/bin
+export LLVM_HOME=${OFCOB_HOME}/llvm
+export LD_LIBRARY_PATH=${LLVM_HOME}/lib:${OFCOB_HOME}/cobolparser/lib:${LD_LIBRARY_PATH}
+export OFCOBCPY=${OFCOB_HOME}/copybook
+
+# TMAX
+export TMAXDIR=${OPENFRAME_HOME}/tmax
+export TMAX_HOME=${TMAXDIR}
+# ahriman created
+export PATH=${TMAXDIR}/bin:${TMAXDIR}/bin64:${PATH}
+export TMAX_HOST_ADDR=127.0.0.1
+export TMAX_HOST_PORT=8940
+export FDLFILE=${TMAXDIR}/fdl/oframe.fdl
+export SDLFILE=${TMAXDIR}/workspace/bank20170720/sdl/anbankxa.sdl
+export LD_LIBRARY_PATH=${TMAXDIR}/lib64:${LD_LIBRARY_PATH}
+export unixODBC_HOME=/usr/local/unixODBC
+export LD_LIBRARY_PATH=${unixODBC_HOME}/lib:${LD_LIBRARY_PATH}
+
+#cp $TMAXDIR/config/tmconfig_batch $TMAXDIR/config/tmconfig
+
+# TIBERO-TSAM
+export TB_HOME=${OPENFRAME_HOME}/tibero
+export PATH=${TB_HOME}/bin:${TB_HOME}/client/bin:${PATH}
+export LD_LIBRARY_PATH=${TB_HOME}/lib:${TB_HOME}/client/lib:${LD_LIBRARY_PATH}
+export TB_SID=tb_start
+
+# PROSORT
+export PROSORT_HOME=${OPENFRAME_HOME}/prosort
+export PROSORT_SID=PROSORT
+export PATH=${PROSORT_HOME}/bin:${PATH}
+export LD_LIBRARY_PATH=${PROSORT_HOME}/lib:${LD_LIBRARY_PATH}
+export LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+
+alias cdpros="cd $PROSORT_HOME"
+alias cdtibero="cd $TB_HOME"
+alias cdtb=cdtibero
+alias cdtmax="cd $TMAX_HOME"
+alias cdo7="cd $OPENFRAME_HOME"
+alias cdoh="cd $OPENFRAME_HOME"
+alias cdprosort=cdpros
+alias cdof="cd $OPENFRAME_HOME"
+alias cdmfc="cd $COBDIR"
+alias cdjcl="cd $OPENFRAME_HOME/volume_100000/SYS1.JCLLIB"
+alias cdproc="cd $OPENFRAME_HOME/volume_100000/SYS1.PROCLIB"
+alias cdvol="cd $OPENFRAME_HOME/volume_100000/"
+alias cdlog="cd $TMAXDIR/log/ulog"
+alias cdbase="cd $SOURCE_BASE"
+alias langus="export LANG=en_US"
+alias langko="export LANG=ko_KR.UTF-8"
+alias nowconfig="echo 'openframe 7 configuration'"
+echo "rc activated."
+
