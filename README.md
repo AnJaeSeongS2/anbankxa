@@ -1,5 +1,10 @@
 ****** RM XA files original pass info *******
 
+
+*folder name  
+anbankxa  = bank20170720
+
+*file name
 rc-7-fix3 = $OH/rc-7-fix3
 svct/anbankxasvr_svctab*  = $TMAXDIR/svct/anbankxasvr_svctab*
 server/anbankxasvr  = $TMAXDIR/appbin/anbankxasvr
