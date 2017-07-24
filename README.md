@@ -1,4 +1,5 @@
 ****** RM XA files original pass info *******
+
 rc-7-fix3 = $OH/rc-7-fix3
 svct/anbankxasvr_svctab*  = $TMAXDIR/svct/anbankxasvr_svctab*
 server/anbankxasvr  = $TMAXDIR/appbin/anbankxasvr
@@ -67,7 +68,9 @@ C. 각종 에러 및 참고사항.
 
 *** 서버 프로그램 컴파일은 db에 접근해야하는 경우 프리컴파일이 필요하다.
 (프리컴파일 진행)
+
 //tmax의 usrinc를 해당폴더에 링크잡아주면 진행가능.
+
 tbpc insert.tbc  
 cc -c -I$TMAXDIR -I$TB_HOME/client/include insert.c
 cc -o insert insert.o demo_sdl.o $TMAXDIR/svct/insert_svctab.o $TMAXDIR/lib/libsvr.a $TMAXDIR/lib/libnodb.a -L$TB_HOME/client/lib -ltbertl -ltbcli -L$TMAXDIR/lib -I$TB_HOME/client/include -ldl
