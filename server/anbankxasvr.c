@@ -311,6 +311,8 @@ extern void esql_do(struct esql_sqlctx *_sqlctx);
 #include <usrinc/atmi.h>
 #include <usrinc/sdl.h>
 #include "../sdl/anbankxa.s"
+#include "../usrlib/timetostr.c"
+
 #define OKMSG "YOU COMPLETE THE TRANSACTION"
 #define USERPASS "tibero/tmax"
 #define NAMEMAXLEN    10
@@ -370,10 +372,8 @@ extern struct sqlca __declspec(dllimport) sqlca;
 	/*
 		EXEC SQL BEGIN DECLARE SECTION;
 	 */
-    char    bank_id1[NAMEMAXLEN];
-    int     account_id1;
-    char    bank_id2[NAMEMAXLEN];
-    int     account_id2;
+    char    bank_id[NAMEMAXLEN];
+    long     account_id;
     long     money;
 
 	/*
@@ -381,13 +381,23 @@ extern struct sqlca __declspec(dllimport) sqlca;
 	 */
 
 
-int ATMSERVICE(TPSVCINFO *msg)
+//function for SERVICE of XA 'anbankxasvr'
+void ATMSERVICE(TPSVCINFO *msg);
+
+//function for sql query
+int CREATE(const long input_account_id, char *const input_bank_id, const long input_money);
+int DEPOSIT(const long input_account_id, char *const input_bank_id, const long input_money);
+int WITHDRAW(const long input_account_id, char *const input_bank_id, const long input_money);
+int SENDMONEY(const long input_account_id1, char *const input_bank_id1, const long input_money, const long input_account_id2 , const *const input_bank_id2 );
+
+
+void ATMSERVICE(TPSVCINFO *msg)
 {
     struct input_bank2 *rcvbuf;
     int     ret;
     char    *send;
-
 	
+	printTime(); //현재시간 출력
     tx_begin();
     rcvbuf = (struct input_bank2 *)(msg->data);
     send = (char *)tpalloc("STRING", NULL, 0);
@@ -401,68 +411,56 @@ int ATMSERVICE(TPSVCINFO *msg)
     printf("selecting command in ATMSERVICE\n");
     if(!strcmp(rcvbuf->commandstr, "DEPOSIT"))
 	{
-	    n = DEPOSIT(msg);
-		printf("ended DEPOSIT(msg) function\n");
+	    n = DEPOSIT(rcvbuf->account_id2,rcvbuf->bank_id2,rcvbuf->money);
+		printf("ended DEPOSIT function\n");
 	}
 	
     if(!strcmp(rcvbuf->commandstr, "CREATE"))
 	{
-	    n = CREATE(msg);
-		printf("ended CREATE(msg) function\n");
+	    n = CREATE(rcvbuf->account_id1 , rcvbuf->bank_id1, rcvbuf->money);
+		printf("ended CREATE function\n");
 	}
 	
-    if(!strcmp(rcvbuf->commandstr, "WITHDROW"))
+    if(!strcmp(rcvbuf->commandstr, "WITHDRAW"))
 	{
-	    n = WITHDROW(msg);
-		printf("ended WITHDROW(msg) function\n");
+	    n = WITHDRAW(rcvbuf->account_id1 , rcvbuf->bank_id1, rcvbuf->money);
+		printf("ended WITHDRAW function\n");
 	}
 	
     if(!strcmp(rcvbuf->commandstr, "SENDMONEY"))
 	{
-	    n = SENDMONEY(msg);
-		printf("ended SENDMONEY(msg) function\n");
+	    n = SENDMONEY(rcvbuf->account_id1 , rcvbuf->bank_id1 , rcvbuf->money , rcvbuf->account_id2, rcvbuf->bank_id2);
+		printf("ended SENDMONEY function\n");
 	}
 	
 
 	//function is not activated correctly.
 	if( n == 0)
 	{
+		printf("%s Function Fail\n \n",rcvbuf->commandstr);
 		tx_rollback();
 		tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
 	}
-    strcpy(send, OKMSG);
-
 
 	//function is activated correctly.
+    strcpy(send, OKMSG);
     tx_commit();
-	printf("acctivated tx_commit()\n");
+	printf("acctivated tx_commit()\n \n");
     tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
 
 
 }
 
-int CREATE(TPSVCINFO *msg)
+int CREATE(const long input_account_id, char *const input_bank_id, const long input_money)
 {
-    struct input_bank2 *rcvbuf;
-    int     ret;
-    char    *send;
-
-    rcvbuf = (struct input_bank2 *)(msg->data);
-    send = (char *)tpalloc("STRING", NULL, 0);
-    if (send == NULL) {
-        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
-		tx_rollback();
-        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
-    }
-
-    account_id1 = rcvbuf->account_id1;
-    money= rcvbuf->money;
-	strcpy(bank_id1,rcvbuf->bank_id1);
+    account_id = input_account_id;
+    money= input_money;
+	strcpy(bank_id,input_bank_id);
 	
-	printf("******CREATING.....******\naccount_id1 : %d\nmoney : %d\nbank_id : %s\n********************", account_id1, money, bank_id1);
+	printf("******CREATING.....******\naccount_id : %d\nmoney : %d\nbank_id : %s\n********************", account_id, money, bank_id);
     
 	/*
-		EXEC SQL XA SET CONNECTION AT :bank_id1;
+		EXEC SQL XA SET CONNECTION AT :bank_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -488,13 +486,13 @@ int CREATE(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
     __sqlctx.host_var_total_cnt = 1;
     __sqlctx.host_var_out_cnt   = 0;
-    __sqlctx.hostvar[0]         = (void *)(bank_id1);
+    __sqlctx.hostvar[0]         = (void *)(bank_id);
     __sqlctx.hostvar_len[0]     = (unsigned int)10;
     __sqlctx.hostvar_stride[0]  = (unsigned int)0;
     __sqlctx.hostvar_type[0]    = ESQL_TYPE_CHAR_ARRAY;
@@ -514,23 +512,13 @@ int CREATE(TPSVCINFO *msg)
       sqlstm.stmt        = __sqlctx.stmt;
     esql_do(&__sqlctx);
 }
-    if ( sqlca.sqlcode != 0)
-    {
-	     printf( " Insert Fail");
-	     printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
-	     tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
-	}
-
-
-
-  	/*  Declare && Open Cursor for Fetch */
     
 	/*
 		EXEC SQL INSERT INTO ACCOUNT (
     ACCOUNT_ID, 
     MONEY )
     VALUES (
-    :account_id1, :money);
+    :account_id, :money);
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -560,16 +548,16 @@ int CREATE(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
     __sqlctx.host_var_total_cnt = 2;
     __sqlctx.host_var_out_cnt   = 0;
-    __sqlctx.hostvar[0]         = (void *)(&(account_id1));
-    __sqlctx.hostvar_len[0]     = (unsigned int)sizeof(int);
+    __sqlctx.hostvar[0]         = (void *)(&(account_id));
+    __sqlctx.hostvar_len[0]     = (unsigned int)sizeof(long);
     __sqlctx.hostvar_stride[0]  = (unsigned int)0;
-    __sqlctx.hostvar_type[0]    = ESQL_TYPE_INT;
+    __sqlctx.hostvar_type[0]    = ESQL_TYPE_LONG;
     __sqlctx.param_type[0]      = 0;
     __sqlctx.ansi_dyn_type[0]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[0]         = (void *)0;
@@ -597,42 +585,18 @@ int CREATE(TPSVCINFO *msg)
 
     if ( sqlca.sqlcode != 0 )
     {
-	     printf(" Insert Fail");
-	     printf("[%s] %d \n", rcvbuf, sqlca.sqlcode);
-	     tpreturn( TPFAIL, sqlca.sqlcode, rcvbuf, strlen(rcvbuf), 0 );
+        printf("CREATE(INSERT) failed sqlcode = %d\n", sqlca.sqlcode);
+		return 0;
 	}
 
-    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
-    {
-        printf("CREATE(INSERT) failed sqlcode = %d\n", sqlca.sqlcode);
-		tx_rollback();
-		tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
-    }
-
-    strcpy(send, OKMSG);
-	printf("CREATE function end\n");
 	return 1;
 
 }
 
-int SENDMONEY(TPSVCINFO *msg)
+int SENDMONEY(const long input_account_id1, char *const input_bank_id1 , const long input_money, const long input_account_id2 , const *const input_bank_id2 )
 {
-    struct input_bank2 *rcvbuf;
-    int     ret;
-    char    *send;
-
-    tx_begin();
-    rcvbuf = (struct input_bank2 *)(msg->data);
-    send = (char *)tpalloc("STRING", NULL, 0);
-    if (send == NULL) {
-        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
-        tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
-    }
-
-
-	if(WITHDROW(msg) == 1 && DEPOSIT(msg) == 1)
+	if(WITHDRAW(input_account_id1,input_bank_id1,input_money) == 1 && DEPOSIT(input_account_id2,input_bank_id2,input_money) == 1)
 	{
-		strcpy(send, OKMSG);
 		return 1;
 	}
 	else
@@ -640,34 +604,19 @@ int SENDMONEY(TPSVCINFO *msg)
 	    printf("fail SENDMONEY\n");
 		return 0;
 	}
-
-
 }
 
 
 
 
 
-int DEPOSIT(TPSVCINFO *msg)
+int DEPOSIT(const long input_account_id , char *const input_bank_id, const long input_money)
 {
-    struct input_bank2 *rcvbuf;
-    int     ret;
-    long    acnt_id;
-    char    *send;
-
-    rcvbuf = (struct input_bank2 *)(msg->data);
-    send = (char *)tpalloc("STRING", NULL, 0);
-    if (send == NULL) {
-        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
-        return 0;
-	}
-
-
-    account_id2 = rcvbuf->account_id2;
-	strcpy(bank_id2 , rcvbuf->bank_id2);
+    account_id = input_account_id;
+	strcpy(bank_id , input_bank_id);
 	
 	/*
-		EXEC SQL XA SET CONNECTION AT :bank_id2;
+		EXEC SQL XA SET CONNECTION AT :bank_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -693,13 +642,13 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
     __sqlctx.host_var_total_cnt = 1;
     __sqlctx.host_var_out_cnt   = 0;
-    __sqlctx.hostvar[0]         = (void *)(bank_id2);
+    __sqlctx.hostvar[0]         = (void *)(bank_id);
     __sqlctx.hostvar_len[0]     = (unsigned int)10;
     __sqlctx.hostvar_stride[0]  = (unsigned int)0;
     __sqlctx.hostvar_type[0]    = ESQL_TYPE_CHAR_ARRAY;
@@ -721,7 +670,7 @@ int DEPOSIT(TPSVCINFO *msg)
 }
     
 	/*
-		EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id2;
+		EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -747,7 +696,7 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -761,10 +710,10 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.ansi_dyn_type[0]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[0]         = (void *)0;
     __sqlctx.hostind_stride[0]  = (unsigned int)0;
-    __sqlctx.hostvar[1]         = (void *)(&(account_id2));
-    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(int);
+    __sqlctx.hostvar[1]         = (void *)(&(account_id));
+    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(long);
     __sqlctx.hostvar_stride[1]  = (unsigned int)0;
-    __sqlctx.hostvar_type[1]    = ESQL_TYPE_INT;
+    __sqlctx.hostvar_type[1]    = ESQL_TYPE_LONG;
     __sqlctx.param_type[1]      = 2;
     __sqlctx.ansi_dyn_type[1]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[1]         = (void *)0;
@@ -781,14 +730,15 @@ int DEPOSIT(TPSVCINFO *msg)
       sqlstm.stmt        = __sqlctx.stmt;
     esql_do(&__sqlctx);
 }
-    /*  Declare && Open Cursor for Fetch */
+	//FETCH로 가져오는 것은 DB를 수정하는 것이 아니므로, XA임에도 즉시 :money가 즉시 initialize된다.
+
     long prevmoney = money;
-    money = money + rcvbuf->money;
+    money = money + input_money;
     
 	/*
 		EXEC SQL UPDATE ACCOUNT
              SET MONEY = :money
-             WHERE ACCOUNT_ID = :account_id2;
+             WHERE ACCOUNT_ID = :account_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -816,7 +766,7 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -830,10 +780,10 @@ int DEPOSIT(TPSVCINFO *msg)
     __sqlctx.ansi_dyn_type[0]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[0]         = (void *)0;
     __sqlctx.hostind_stride[0]  = (unsigned int)0;
-    __sqlctx.hostvar[1]         = (void *)(&(account_id2));
-    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(int);
+    __sqlctx.hostvar[1]         = (void *)(&(account_id));
+    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(long);
     __sqlctx.hostvar_stride[1]  = (unsigned int)0;
-    __sqlctx.hostvar_type[1]    = ESQL_TYPE_INT;
+    __sqlctx.hostvar_type[1]    = ESQL_TYPE_LONG;
     __sqlctx.param_type[1]      = 2;
     __sqlctx.ansi_dyn_type[1]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[1]         = (void *)0;
@@ -852,55 +802,40 @@ int DEPOSIT(TPSVCINFO *msg)
 }
 
 
-    printf("*********DEPOSITING....********\naccount_id = %d\nbank_id = %s\nmoney = %d\n****************\n",account_id2,bank_id2,money);
+    printf("*********DEPOSITING....********\naccount_id = %d\nbank_id = %s\nmoney = %d\n****************\n",account_id,bank_id,money);
     if ((sqlca.sqlcode != 0 && sqlca.sqlcode != 1403) )
     {
         printf("DEPOSIT(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-		tx_rollback();
         return 0;
+	}
+	if (sqlca.sqlcode == 1403)
+	{
+		printf("DEPOSIT(UPDATE) failed at SELECT QUERY. sqlcode = %d\n", sqlca.sqlcode);
+		return 0;
 	}
     if (prevmoney>money)
     {
-        printf("money high limit over prevmoney<money");
+        printf("money high limit over prevmoney < currentmoney\n");
         printf("DEPOSIT(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-		tx_rollback();
 		return 0;
     }
     if (money<0)
     {
-        printf("money high limit over money<0");
+        printf("money high limit over money < 0");
         printf("deposit(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-		tx_rollback();
-        //tpreturn(TPFAIL, 0, (char *)NULL, 0, TPNOFLAGS);
 		return 0;
     }
-    strcpy(send, OKMSG);
-    //tpreturn(TPSUCCESS, 1, (char *)send, strlen(send), TPNOFLAGS);
 	return 1;
 }
 
-int WITHDROW(TPSVCINFO *msg)
+int WITHDRAW(const long input_account_id , char *const input_bank_id, const long input_money)
 {
-    struct input_bank2 *rcvbuf;
-    int     ret;
-    long    acnt_id;
-    char    *send;
-    
-    rcvbuf = (struct input_bank2 *)(msg->data);
-    send = (char *)tpalloc("STRING", NULL, 0);
-    if (send == NULL) {
-        fprintf(stderr, "tpalloc fail errno = %s\n", tpstrerror(tperrno));
-		tx_rollback();
-		return 0;
-    }
-
-
-    account_id1= rcvbuf->account_id1;
-	strcpy( bank_id1 , rcvbuf->bank_id1);
+    account_id= input_account_id;
+	strcpy( bank_id , input_bank_id);
 
     
 	/*
-		EXEC SQL XA SET CONNECTION AT :bank_id1;
+		EXEC SQL XA SET CONNECTION AT :bank_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -926,13 +861,13 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
     __sqlctx.host_var_total_cnt = 1;
     __sqlctx.host_var_out_cnt   = 0;
-    __sqlctx.hostvar[0]         = (void *)(bank_id1);
+    __sqlctx.hostvar[0]         = (void *)(bank_id);
     __sqlctx.hostvar_len[0]     = (unsigned int)10;
     __sqlctx.hostvar_stride[0]  = (unsigned int)0;
     __sqlctx.hostvar_type[0]    = ESQL_TYPE_CHAR_ARRAY;
@@ -954,7 +889,7 @@ int WITHDROW(TPSVCINFO *msg)
 }
     
 	/*
-		EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id1;
+		EXEC SQL SELECT MONEY INTO :money FROM ACCOUNT WHERE ACCOUNT_ID = :account_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -980,7 +915,7 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -994,10 +929,10 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.ansi_dyn_type[0]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[0]         = (void *)0;
     __sqlctx.hostind_stride[0]  = (unsigned int)0;
-    __sqlctx.hostvar[1]         = (void *)(&(account_id1));
-    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(int);
+    __sqlctx.hostvar[1]         = (void *)(&(account_id));
+    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(long);
     __sqlctx.hostvar_stride[1]  = (unsigned int)0;
-    __sqlctx.hostvar_type[1]    = ESQL_TYPE_INT;
+    __sqlctx.hostvar_type[1]    = ESQL_TYPE_LONG;
     __sqlctx.param_type[1]      = 2;
     __sqlctx.ansi_dyn_type[1]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[1]         = (void *)0;
@@ -1014,14 +949,14 @@ int WITHDROW(TPSVCINFO *msg)
       sqlstm.stmt        = __sqlctx.stmt;
     esql_do(&__sqlctx);
 }
-    /*  Declare && Open Cursor for Fetch */
+
     long prevmoney = money;
-    money= money - rcvbuf->money;
+    money= money - input_money;
     
 	/*
 		EXEC SQL UPDATE ACCOUNT 
              SET MONEY = :money
-             WHERE ACCOUNT_ID = :account_id1;
+             WHERE ACCOUNT_ID = :account_id;
 	 */
 {
     struct esql_sqlctx  __sqlctx;
@@ -1049,7 +984,7 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.sql_ctx     = (sql_context *)0;
     __sqlctx.ep_ctx      = (void *)0;
     __sqlctx.sqlstate    = (char *)0;
-    __sqlctx.file_id     = 115;
+    __sqlctx.file_id     = 143;
     __sqlctx.prefetch    = 1;
     __sqlctx.rmid        = -1;
     __sqlctx.iter_cnt           = 1;
@@ -1063,10 +998,10 @@ int WITHDROW(TPSVCINFO *msg)
     __sqlctx.ansi_dyn_type[0]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[0]         = (void *)0;
     __sqlctx.hostind_stride[0]  = (unsigned int)0;
-    __sqlctx.hostvar[1]         = (void *)(&(account_id1));
-    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(int);
+    __sqlctx.hostvar[1]         = (void *)(&(account_id));
+    __sqlctx.hostvar_len[1]     = (unsigned int)sizeof(long);
     __sqlctx.hostvar_stride[1]  = (unsigned int)0;
-    __sqlctx.hostvar_type[1]    = ESQL_TYPE_INT;
+    __sqlctx.hostvar_type[1]    = ESQL_TYPE_LONG;
     __sqlctx.param_type[1]      = 2;
     __sqlctx.ansi_dyn_type[1]   = ESQL_DESC_ITEM_NONE;
     __sqlctx.hostind[1]         = (void *)0;
@@ -1084,31 +1019,29 @@ int WITHDROW(TPSVCINFO *msg)
     esql_do(&__sqlctx);
 }
 
-    printf("*******WITHDROWING...*********\naccount_id = %d\nbank_id = %s\nmoney = %d\n*********************\n",account_id1,money);
-    if (sqlca.sqlcode != 0 && sqlca.sqlcode != 1403 )
+    printf("*******WITHDRAWING...*********\naccount_id = %d\nbank_id = %s\nmoney = %d\n*********************\n",account_id,bank_id,money);
+    if ((sqlca.sqlcode != 0 && sqlca.sqlcode != 1403) )
     {
-        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-        tx_rollback();
+        printf("WITHDRAW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
+        return 0;
+	}
+	if (sqlca.sqlcode == 1403)
+	{
+		printf("WITHDRAW(UPDATE) failed at SELECT QUERY. sqlcode = %d\n", sqlca.sqlcode);
 		return 0;
-
-    }
-
+	}
     if (prevmoney<money)
     {
-        printf("money min limit over prevmoney<money");
-        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-        tx_rollback();
+        printf("money min limit over prevmoney < currentmoney\n");
+        printf("WITHDRAW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
 		return 0;
     }
     if (money<0)
     {
-        printf("money min limit over money<0");
-        printf("WITHDROW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
-        tx_rollback();
+        printf("money min limit over money < 0");
+        printf("WITHDRAW(UPDATE) failed sqlcode = %d\n", sqlca.sqlcode);
 	    return 0;	
     }
-
-    strcpy(send, OKMSG);
 	return 1;
 }
 

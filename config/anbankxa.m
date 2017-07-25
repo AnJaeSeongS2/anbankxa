@@ -96,12 +96,3 @@ anbankxasvr       SVGNAME = svg_anbankxa,
 
 ATMSERVICE SVRNAME = anbankxasvr,
 		   SVCTIME = 90
-CREATE SVRNAME = anbankxasvr,
-        SVCTIME = 90
-DEPOSIT SVRNAME = anbankxasvr,
-		SVCTIME = 90
-WITHDROW SVRNAME = anbankxasvr,
-		 SVCTIME = 90
-SENDMONEY SVRNAME = anbankxasvr,
-		  SVCTIME = 90
-

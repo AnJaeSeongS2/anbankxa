@@ -46,14 +46,14 @@ clean:
 	rm -f $(SOURCEDIR)/sdl/$(TARGET).sdl
 	rm -f $(TMAXDIR)/svct/$(TARGETSVR)_svctab.c
 	rm -f $(TMAXDIR)/svct/$(TARGETSVR)_svctab.o
-
+	rm -f $(SOURCEDIR)/$(TARGETCLI)
 
 $(TARGET): $(TARGET).m $(TARGET).s $(TARGETSVR) $(TARGETCLI)
 	cd $(SOURCEDIR) ; \
-
+	ln -s $(SOURCEDIR)/client/$(TARGETCLI) $(SOURCEDIR)/
 $(TARGET).m:
 	cd $(SOURCEDIR)/config ; \
-	cfl -i anbankxa.m
+	cfl -i $(SOURCEDIR)/config/$(TARGET).m
 	gst
 	cd $(SVCTDIR) ; \
 	cc -c -I$(TMAXDIR) $(TARGETSVR)_svctab.c

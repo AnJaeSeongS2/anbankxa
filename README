@@ -27,7 +27,7 @@ B. XA 컴파일 총 과정
 
 *** XA를 사용하는 구조를 상세설명
  XA에서 client측 소스코드에서는 트랜잭션에 대해 관여하는걸 최소로 해야함. tp_alloc과 tpcall, tpfree, tpend같이 XA와 무관한 트랜잭션 관리 함수만 사용하게 됨. client측의 tpcall을 통해 server측에 있는 서비스를 불러오게 된다. 
- 맨 먼저 불러오는 서비스는 anbankxasvr를 기준으로 ATMSERVICE라는 서비스다. 이 서비스는 CREATE,DEPOSIT,WITHDROW,SENDMONEY의 4가지 서비스를 선택해주는 서비스이다. 따라서 ATMSERVICE에서는 tx_begin()과 CREATE등등의 함수 사용부분, 상황에 따른 tx_rollback(), tx_commit(), 그리고 마지막으로 tpreturn()이 작성되어있다.
+ 맨 먼저 불러오는 서비스는 anbankxasvr를 기준으로 ATMSERVICE라는 서비스다. 이 서비스는 CREATE,DEPOSIT,WITHDRAW,SENDMONEY의 4가지 서비스를 선택해주는 서비스이다. 따라서 ATMSERVICE에서는 tx_begin()과 CREATE등등의 함수 사용부분, 상황에 따른 tx_rollback(), tx_commit(), 그리고 마지막으로 tpreturn()이 작성되어있다.
  세부적인 4가지 서비스들은 각각 EXEC SQL XA SET CONNECTION AT : conn_id로 DB에 접근하고, 이 conn_id는 anbankxa.m내에 작성해놓은 xa로 묶인 svrgroup 의 id값이다. 본인의 코드내에서는 이 값이 anbank1,anbank2이다. 이후 각 서비스는 상황에 따른 tx_rollback(), 상황에 따른 return (1/0) 으로 ATMSERVICE에서 함수가 잘 수행됐는 지 확인하게 해준다.
 
 
@@ -39,7 +39,7 @@ anbankxa.m에서 svrgroup에 tms_tbr을 엮어줘야한다. ex) 본인 anbankxa.
 
 0.5 사용할 db생성.
 1. system 환경파일 정리 및 적용
-cfl -i anbankxa.m
+cfl -i /home/anu/o7/tmax/workspace/bank20170720/config/anbankxa.m
 gst
 cd $TMAXDIR/svct
 cc -c -I$TMAXDIR anbankxasvr_svctab.c
